@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GeoMorph - Advanced Geography Portal</title>
+    <meta name="description" content="Educational portal for Geography, Geomorphology, and Assam Studies.">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* --- CSS VARIABLES & RESET --- */
+        :root {
+            --primary: #00ff88;
+            --primary-dark: #00cc6a;
+            --secondary: #00d4ff;
+            --bg-dark: #0a0a0f;
+            --bg-panel: rgba(20, 20, 30, 0.85);
+            --text-light: #f0f0f0;
+            --text-dim: #a0a0b0;
+            --danger: #ff4d4d;
+            --success: #00ff88;
+            --glass: rgba(255, 255, 255, 0.05);
+            --border: rgba(255, 255, 255, 0.1);
+            --font-main: 'Rajdhani', sans-serif;
+            --font-display: 'Orbitron', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: var(--font-main);
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        a { text-decoration: none; color: inherit; transition: 0.3s; }
+        ul { list-style: none; }
+        button, input { font-family: inherit; outline: none; }
+
+        /* --- LOADING SCREEN --- */
+        #loader {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-dark);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.5s ease;
+        }
+        .loader-text {
+            font-family: var(--font-display);
+            font-size: 2rem;
+            letter-spacing: 3px;
+            margin-bottom: 20px;
+            color: var(--primary);
+            text-transform: uppercase;
+            animation: pulse 1.5s infinite;
+        }
+        .loader-bar {
+            width: 200px;
+            height: 4px;
+            background: #333;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .loader-progress {
+            width: 0%;
+            height: 100%;
+            background: var(--primary);
+            animation: loadProgress 2s ease-in-out forwards;
+        }
+
+        @keyframes loadProgress { 100% { width: 100%; } }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+        /* --- BACKGROUND VIDEO --- */
+        #bg-video-container {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100vh;
+            z-index: -2;
+            overflow: hidden;
+        }
+        #bg-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            /* Transition for the scroll blur effect */
+            transition: filter 0.5s ease, transform 0.5s ease;
+        }
+        /* Dark overlay when scrolling */
+        .video-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to bottom, rgba(10,10,15,0.3), var(--bg-dark));
+            z-index: -1;
+            transition: opacity 0.5s ease;
+            pointer-events: none;
+        }
+
+        /* Scroll Effect States */
+        body.scrolled #bg-video {
+            filter: blur(8px) brightness(0.4);
+            transform: scale(1.05);
+        }
+
+        /* --- NAVIGATION --- */
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            padding: 15px 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(10, 10, 15, 0.8);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            border-bottom: 1px solid var(--border);
+        }
+        .logo {
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        .nav-links {
+            display: flex;
+            gap: 20px;
+        }
+        .nav-btn {
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text-light);
+            font-size: 1rem;
+            cursor: pointer;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+        .nav-btn:hover, .nav-btn.active {
+            color: var(--primary);
+            border-color: var(--primary);
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.2);
+        }
+        .user-display {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+            color: var(--secondary);
+        }
+
+        /* Mobile Menu Toggle */
+        .menu-toggle {
+            display: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        /* --- MAIN CONTAINER --- */
+        main {
+            padding-top: 80px; /* offset for fixed nav */
+            min-height: 100vh;
+        }
+
+        /* Section Visibility Logic */
+        section {
+            display: none;
+            padding: 40px 5%;
+            animation: fadeIn 0.6s ease;
+        }
+        section.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- HERO SECTION --- */
+        #home {
+            height: calc(100vh - 80px);
+            display: flex; /* Changed via JS to block */
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-start;
+            text-align: left;
+        }
+        /* When active as section, override flex to block layout for content, 
+           but Hero specifically needs flex for centering. 
+           We handle this via specific classes. */
+        section#home.active {
+            display: flex;
+        }
+
+        .hero-content {
+            max-width: 600px;
+            z-index: 2;
+        }
+        .hero-subtitle {
+            font-size: 1.2rem;
+            color: var(--secondary);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .hero-title {
+            font-family: var(--font-display);
+            font-size: 3.5rem;
+            line-height: 1.1;
+            margin-bottom: 20px;
+            background: linear-gradient(45deg, #fff, var(--primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .hero-desc {
+            font-size: 1.1rem;
+            color: var(--text-dim);
+            margin-bottom: 30px;
+            max-width: 500px;
+        }
+        .cta-btn {
+            background: var(--primary);
+            color: var(--bg-dark);
+            padding: 12px 30px;
+            border: none;
+            border-radius: 30px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: 0.3s;
+            display: inline-block;
+        }
+        .cta-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.4);
+        }
+
+        /* --- GEOMORPH INFOGRAPHIC (Option A) --- */
+        .geomorph-viz {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 50px;
+            width: 100%;
+        }
+        .info-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            padding: 25px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            transition: 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        .info-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--secondary);
+            box-shadow: 0 10px 30px rgba(0, 212, 255, 0.1);
+        }
+        .info-card h3 {
+            color: var(--secondary);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        /* Simple CSS Animations for Processes */
+        .process-animation {
+            height: 60px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 4px;
+            margin-top: 15px;
+            position: relative;
+            overflow: hidden;
+        }
+        .anim-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            animation: flow 3s infinite ease-in-out;
+            opacity: 0.7;
+        }
+        @keyframes flow { 0% { width: 20%; } 50% { width: 80%; } 100% { width: 20%; } }
+
+        /* --- QUIZ SECTION --- */
+        .quiz-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: var(--bg-panel);
+            padding: 30px;
+            border-radius: 15px;
+            border: 1px solid var(--border);
+        }
+        .quiz-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            font-family: var(--font-display);
+        }
+        .timer-badge {
+            background: rgba(255, 77, 77, 0.2);
+            color: var(--danger);
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .question-text {
+            font-size: 1.3rem;
+            margin-bottom: 25px;
+        }
+        .options-grid {
+            display: grid;
+            gap: 15px;
+        }
+        .option-btn {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border);
+            padding: 15px;
+            text-align: left;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.2s;
+            color: var(--text-light);
+        }
+        .option-btn:hover {
+            background: rgba(255,255,255,0.1);
+            border-color: var(--primary);
+        }
+        .option-btn.correct { background: rgba(0, 255, 136, 0.2); border-color: var(--primary); }
+        .option-btn.wrong { background: rgba(255, 77, 77, 0.2); border-color: var(--danger); }
+        
+        .score-board {
+            text-align: center;
+            display: none;
+        }
+        .grade-circle {
+            width: 120px; height: 120px;
+            border-radius: 50%;
+            border: 5px solid var(--primary);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2rem;
+            margin: 20px auto;
+            font-family: var(--font-display);
+            box-shadow: 0 0 20px rgba(0,255,136,0.3);
+        }
+
+        /* --- DONATION SECTION --- */
+        .donation-wrapper {
+            max-width: 500px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        .donation-card {
+            background: var(--bg-panel);
+            padding: 30px;
+            border-radius: 15px;
+            border: 1px solid var(--border);
+        }
+        .qr-display {
+            width: 200px;
+            height: 200px;
+            margin: 20px auto;
+            border: 10px solid #fff;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .qr-display img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .amount-input {
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 20px;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--border);
+            color: #fff;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            text-align: center;
+        }
+        .upi-options {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        .upi-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: rgba(255,255,255,0.05);
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            min-width: 80px;
+        }
+        .upi-btn:hover { border-color: var(--primary); background: rgba(255,255,255,0.1); }
+        .upi-icon { font-size: 1.5rem; margin-bottom: 5px; }
+        .upi-name { font-size: 0.8rem; }
+
+        /* --- AI CHAT SECTION --- */
+        .chat-container {
+            max-width: 800px;
+            margin: 0 auto;
+            height: 70vh;
+            background: var(--bg-panel);
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+        .chat-window {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .message {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            line-height: 1.4;
+            position: relative;
+            animation: slideUp 0.3s ease;
+        }
+        @keyframes slideUp { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        
+        .msg-ai {
+            align-self: flex-start;
+            background: rgba(255,255,255,0.1);
+            border-bottom-left-radius: 2px;
+        }
+        .msg-user {
+            align-self: flex-end;
+            background: var(--primary);
+            color: #000;
+            border-bottom-right-radius: 2px;
+        }
+        .typing-indicator {
+            font-style: italic;
+            color: var(--text-dim);
+            font-size: 0.9rem;
+            margin-left: 10px;
+            display: none;
+        }
+        .chat-input-area {
+            padding: 15px;
+            background: rgba(0,0,0,0.3);
+            display: flex;
+            gap: 10px;
+        }
+        .chat-input {
+            flex: 1;
+            padding: 12px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border);
+            color: #fff;
+            border-radius: 25px;
+        }
+        .send-btn {
+            background: var(--secondary);
+            border: none;
+            width: 45px; height: 45px;
+            border-radius: 50%;
+            cursor: pointer;
+            color: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .limit-badge {
+            position: absolute;
+            top: -30px;
+            right: 0;
+            font-size: 0.8rem;
+            color: var(--danger);
+        }
+
+        /* --- FOOTER --- */
+        footer {
+            background: rgba(5, 5, 10, 0.95);
+            padding: 40px 5% 20px;
+            margin-top: 50px;
+            border-top: 1px solid var(--border);
+        }
+        .footer-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        .footer-col h4 {
+            color: var(--primary);
+            margin-bottom: 15px;
+            font-family: var(--font-display);
+        }
+        .footer-col ul li { margin-bottom: 10px; }
+        .footer-col ul li a:hover { color: var(--secondary); padding-left: 5px; }
+        .copyright {
+            text-align: center;
+            border-top: 1px solid var(--border);
+            padding-top: 20px;
+            color: var(--text-dim);
+            font-size: 0.9rem;
+        }
+
+        /* --- RESPONSIVE FIXES --- */
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+                position: absolute;
+                top: 70px;
+                left: 0;
+                width: 100%;
+                background: var(--bg-dark);
+                flex-direction: column;
+                padding: 20px;
+                border-bottom: 1px solid var(--border);
+            }
+            .nav-links.active { display: flex; }
+            .menu-toggle { display: block; }
+            .hero-title { font-size: 2.5rem; }
+            .chat-container { height: 80vh; }
+        }
+        @media (max-width: 425px) {
+            .hero-title { font-size: 2rem; }
+            .hero-content { padding: 0 10px; }
+            .upi-options { gap: 10px; }
+            .upi-btn { min-width: 60px; padding: 5px; }
+            .nav-links { padding: 10px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Loading Screen -->
+    <div id="loader">
+        <div class="loader-text">GeoMorph</div>
+        <div class="loader-bar">
+            <div class="loader-progress"></div>
+        </div>
+    </div>
+
+    <!-- Background Video -->
+    <div id="bg-video-container">
+        <!-- IMPORTANT: Replace the src below with YOUR Cloudinary video link -->
+        <video id="bg-video" autoplay muted loop playsinline poster="https://via.placeholder.com/1920x1080/000000/000000">
+            <source src="https://assets.mixkit.co/videos/preview/mixkit-stars-in-space-background-1610-large.mp4" type="video/mp4">
+            Your browser does not support HTML5 video.
+        </video>
+        <div class="video-overlay"></div>
+    </div>
+
+    <!-- Navigation -->
+    <nav>
+        <div class="logo"><i class="fas fa-globe-asia"></i> GeoMorph</div>
+        <div class="menu-toggle" onclick="toggleMenu()"><i class="fas fa-bars"></i></div>
+        <ul class="nav-links">
+            <li><button class="nav-btn active" onclick="switchSection('home')">Home</button></li>
+            <li><button class="nav-btn" onclick="switchSection('quiz')">Quiz</button></li>
+            <li><button class="nav-btn" onclick="switchSection('donate')">Donate</button></li>
+            <li><button class="nav-btn" onclick="switchSection('ai')">Ask AI</button></li>
+            <li>
+                <button class="nav-btn" id="authBtn" onclick="toggleLogin()">Login</button>
+            </li>
+        </ul>
+    </nav>
+
+    <main>
+        <!-- HOME SECTION -->
+        <section id="home" class="active">
+            <div class="hero-content">
+                <div class="hero-subtitle">Welcome Back</div>
+                <h1 class="hero-title" id="hero-greeting">Guest</h1>
+                <p class="hero-desc">Explore the dynamic forces shaping our planet. From plate tectonics to river erosion, GeoMorph provides advanced educational resources.</p>
+                <button class="cta-btn" onclick="switchSection('quiz')">Start Learning <i class="fas fa-arrow-right"></i></button>
+            </div>
+            
+            <!-- Interactive Geomorphology Infographic (Option A) -->
+            <div class="geomorph-viz">
+                <div class="info-card">
+                    <h3><i class="fas fa-mountain"></i> Orogenesis</h3>
+                    <p>The process of mountain formation through tectonic forces folding and faulting the crust.</p>
+                    <div class="process-animation"><div class="anim-bar" style="animation-duration: 4s;"></div></div>
+                </div>
+                <div class="info-card">
+                    <h3><i class="fas fa-water"></i> Fluvial Erosion</h3>
+                    <p>Rivers cutting through landscapes, creating V-shaped valleys and alluvial fans.</p>
+                    <div class="process-animation"><div class="anim-bar" style="animation-duration: 2.5s; background: linear-gradient(90deg, #00ccff, #0051ff);"></div></div>
+                </div>
+                <div class="info-card">
+                    <h3><i class="fas fa-wind"></i> Aeolian Transport</h3>
+                    <p>Wind-driven movement of sediment creating dunes and loess deposits.</p>
+                    <div class="process-animation"><div class="anim-bar" style="animation-duration: 3s; background: linear-gradient(90deg, #ffcc00, #ff6600);"></div></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- QUIZ SECTION -->
+        <section id="quiz">
+            <div class="quiz-container">
+                <div class="quiz-header">
+                    <span id="quiz-progress">Question 1/7</span>
+                    <span class="timer-badge" id="timer">60s</span>
+                </div>
+                
+                <div id="quiz-game">
+                    <h2 class="question-text" id="question-text">Loading question...</h2>
+                    <div class="options-grid" id="options-container">
+                        <!-- Options injected via JS -->
+                    </div>
+                </div>
+
+                <div id="quiz-result" class="score-board">
+                    <h2>Quiz Completed!</h2>
+                    <div class="grade-circle" id="grade-display">A</div>
+                    <p id="score-text">Score: 0/7</p>
+                    <p id="percent-text">Percentage: 0%</p>
+                    <br>
+                    <button class="cta-btn" onclick="initQuiz()">Retake Quiz</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- DONATION SECTION -->
+        <section id="donate">
+            <div class="donation-wrapper">
+                <h2 style="margin-bottom: 20px; font-family: var(--font-display);">Support GeoMorph</h2>
+                <p style="margin-bottom: 20px; color: var(--text-dim);">Your contribution helps improve educational resources for students.</p>
+                
+                <div class="donation-card">
+                    <label>Enter Amount (INR)</label>
+                    <input type="number" id="donate-amount" class="amount-input" placeholder="e.g. 100" min="1">
+                    
+                    <div class="qr-display">
+                        <!-- User Provided QR Code Image -->
+                        <img src="https://z-cdn-media.chatglm.cn/files/042590d7-de45-491e-9761-d41150b26e78.png?auth_key=1881612469-fa6c0ed0bb3d40adaf90931124525afe-0-fe9382515e3332bf8d5994fb442a80ef" alt="Rein Sangma QR Code">
+                    </div>
+                    <p style="font-size: 0.9rem; color: var(--secondary);">UPI ID: reinsangma@oksbi</p>
+                    
+                    <div class="upi-options">
+                        <button class="upi-btn" onclick="processUPI('gpay')">
+                            <span class="upi-icon" style="color:#fff;"><i class="fab fa-google-pay"></i></span>
+                            <span class="upi-name">GPay</span>
+                        </button>
+                        <button class="upi-btn" onclick="processUPI('phonepe')">
+                            <span class="upi-icon" style="color:#5f259f;"><i class="fas fa-mobile-alt"></i></span>
+                            <span class="upi-name">PhonePe</span>
+                        </button>
+                        <button class="upi-btn" onclick="processUPI('paytm')">
+                            <span class="upi-icon" style="color:#00baf2;"><i class="fas fa-wallet"></i></span>
+                            <span class="upi-name">Paytm</span>
+                        </button>
+                        <button class="upi-btn" onclick="processUPI('upi')">
+                            <span class="upi-icon" style="color:var(--primary);"><i class="fas fa-qrcode"></i></span>
+                            <span class="upi-name">Others</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- AI ASSISTANT SECTION -->
+        <section id="ai">
+            <h2 style="text-align: center; margin-bottom: 20px; font-family: var(--font-display);">GeoMorph AI Assistant</h2>
+            <div class="chat-container">
+                <div class="limit-badge" id="chat-limit">Guest Limit: 5/5 questions/day</div>
+                <div class="chat-window" id="chat-window">
+                    <div class="message msg-ai">
+                        Hello! I am GeoMorph AI. I can help you with Geography, Geomorphology, or information about the developer. Ask me something!
+                    </div>
+                </div>
+                <div class="typing-indicator" id="typing-indicator">GeoMorph AI is typing...</div>
+                <div class="chat-input-area">
+                    <input type="text" id="chat-input" class="chat-input" placeholder="Ask a question..." onkeypress="handleChatEnter(event)">
+                    <button class="send-btn" onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-grid">
+            <div class="footer-col">
+                <h4>GeoMorph</h4>
+                <p style="font-size: 0.9rem; color: var(--text-dim);">An advanced educational portal dedicated to Geography and Geomorphology.</p>
+            </div>
+            <div class="footer-col">
+                <h4>Quick Links</h4>
+                <ul>
+                    <li><a href="#" onclick="switchSection('home')">Home</a></li>
+                    <li><a href="#" onclick="switchSection('quiz')">Quiz System</a></li>
+                    <li><a href="#" onclick="switchSection('ai')">Ask AI</a></li>
+                    <li><a href="#" onclick="switchSection('donate')">Donate</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h4>Legal</h4>
+                <ul>
+                    <li><a href="#">Privacy Policy</a></li>
+                    <li><a href="#">Terms & Conditions</a></li>
+                    <li><a href="#">FAQ</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h4>Connect</h4>
+                <div style="display: flex; gap: 15px; font-size: 1.2rem;">
+                    <a href="#"><i class="fab fa-facebook"></i></a>
+                    <a href="#"><i class="fab fa-twitter"></i></a>
+                    <a href="#"><i class="fab fa-instagram"></i></a>
+                    <a href="#"><i class="fab fa-linkedin"></i></a>
+                </div>
+            </div>
+        </div>
+        <div class="copyright">
+            &copy; 2023 GeoMorph. All rights reserved. Developed by Reinhard Son Sangma.
+        </div>
+    </footer>
+
+    <script>
+        /* --- STATE MANAGEMENT --- */
+        const state = {
+            user: {
+                isLoggedIn: false,
+                username: "Reinhard" 
+            },
+            quiz: {
+                questions: [],
+                currentQIndex: 0,
+                score: 0,
+                timer: 60,
+                intervalId: null
+            },
+            ai: {
+                dailyLimit: 5,
+                usedToday: 0
+            }
+        };
+
+        // Load AI limit from local storage
+        const today = new Date().toDateString();
+        if(localStorage.getItem('aiDate') === today) {
+            state.ai.usedToday = parseInt(localStorage.getItem('aiCount') || 0);
+        } else {
+            localStorage.setItem('aiDate', today);
+            localStorage.setItem('aiCount', 0);
+        }
+
+        /* --- INITIALIZATION --- */
+        window.onload = function() {
+            setTimeout(() => {
+                document.getElementById('loader').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('loader').style.display = 'none';
+                }, 500);
+            }, 2000);
+            
+            updateHeroUser();
+            updateAILimitDisplay();
+        };
+
+        /* --- NAVIGATION & UI --- */
+        function toggleMenu() {
+            document.querySelector('.nav-links').classList.toggle('active');
+        }
+
+        function switchSection(id) {
+            // Hide all sections
+            document.querySelectorAll('section').forEach(sec => {
+                sec.classList.remove('active');
+                if(sec.id === 'home') sec.style.display = 'none'; // Force reset
+            });
+            
+            // Remove active class from buttons
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+
+            // Show target
+            const target = document.getElementById(id);
+            target.classList.add('active');
+            if(id === 'home') target.style.display = 'flex';
+
+            // Highlight button
+            const btnMap = { 'home': 0, 'quiz': 1, 'donate': 2, 'ai': 3 };
+            const btns = document.querySelectorAll('.nav-links .nav-btn');
+            if(btnMap[id] !== undefined) btns[btnMap[id]].classList.add('active');
+
+            // Specific init logic
+            if(id === 'quiz' && state.quiz.questions.length === 0) {
+                initQuiz();
+            }
+
+            // Mobile menu close
+            document.querySelector('.nav-links').classList.remove('active');
+        }
+
+        /* --- SCROLL EFFECT --- */
+        window.addEventListener('scroll', () => {
+            const body = document.body;
+            if (window.scrollY > 50) {
+                body.classList.add('scrolled');
+            } else {
+                body.classList.remove('scrolled');
+            }
+        });
+
+        /* --- USER SYSTEM --- */
+        function toggleLogin() {
+            state.user.isLoggedIn = !state.user.isLoggedIn;
+            const btn = document.getElementById('authBtn');
+            
+            if(state.user.isLoggedIn) {
+                btn.innerText = "Logout";
+                btn.style.color = "var(--primary)";
+            } else {
+                btn.innerText = "Login";
+                btn.style.color = "var(--text-light)";
+            }
+            updateHeroUser();
+        }
+
+        function updateHeroUser() {
+            const el = document.getElementById('hero-greeting');
+            if(state.user.isLoggedIn) {
+                el.innerHTML = `<i class="fas fa-user-astronaut"></i> ${state.user.username}`;
+            } else {
+                el.innerText = "Guest";
+            }
+        }
+
+        /* --- QUIZ SYSTEM --- */
+        // Simulating the 150+ Question Database (Subset for demo)
+        const questionBank = [
+            // General Geography
+            { q: "What is the approximate age of the Earth?", o: ["4.5 Billion Years", "5.5 Billion Years", "3.5 Billion Years", "6.0 Billion Years"], a: 0, cat: "General" },
+            { q: "Which layer of the Earth is liquid?", o: ["Crust", "Mantle", "Outer Core", "Inner Core"], a: 2, cat: "General" },
+            { q: "The 'Ring of Fire' is associated with:", o: ["Volcanoes", "Hurricanes", "Glaciers", "Deserts"], a: 0, cat: "General" },
+            
+            // Assam Geography
+            { q: "Which is the largest river island in the world located in Assam?", o: ["Majuli", "Umananda", "Saraswati", "Dibru Saikhowa"], a: 0, cat: "Assam" },
+            { q: "What is the state flower of Assam?", o: ["Rose", "Lotus", "Rhododendron", "Foxtail Orchids"], a: 3, cat: "Assam" },
+            { q: "Kaziranga National Park is famous for:", o: ["Lions", "One-horned Rhinoceros", "Tigers", "Elephants"], a: 1, cat: "Assam" },
+            
+            // Geomorphology
+            { q: "The process by which wind removes surface particles is known as:", o: ["Deflation", "Abrasion", "Hydration", "Carbonation"], a: 0, cat: "Geomorphology" },
+            { q: "A V-shaped valley is characteristic of:", o: ["Youthful River", "Old Age River", "Glacier", "Ocean"], a: 0, cat: "Geomorphology" },
+            { q: "Which fault creates a hanging wall block?", o: ["Normal Fault", "Reverse Fault", "Strike-Slip Fault", "Transform Fault"], a: 1, cat: "Geomorphology" },
+            { q: "The Deposition of fine sediments by wind forming fertile soil is:", o: ["Loess", "Till", "Alluvium", "Moraine"], a: 0, cat: "Geomorphology" },
+            { q: "What is the term for a bend in a river?", o: ["Meander", "Oxbow Lake", "Tributary", "Distributary"], a: 0, cat: "Geomorphology" },
+            { q: "Karst topography is mainly formed by the action of:", o: ["Groundwater", "Wind", "Sea Waves", "Glaciers"], a: 0, cat: "Geomorphology" },
+            { q: "Which type of volcano has the steepest slope?", o: ["Shield", "Cinder Cone", "Composite", "Flood Basalt"], a: 1, cat: "Geomorphology" },
+            { q: "The process of a stream eroding its channel downwards is called:", o: ["Vertical Erosion", "Lateral Erosion", "Headward Erosion", "Sheet Erosion"], a: 0, cat: "Geomorphology" },
+            { q: "Dunal landforms are associated with:", o: ["Aeolian", "Fluvial", "Marine", "Glacial"], a: 0, cat: "Geomorphology" }
+        ];
+
+        function initQuiz() {
+            // Randomize and pick 7
+            const shuffled = [...questionBank].sort(() => 0.5 - Math.random());
+            state.quiz.questions = shuffled.slice(0, 7);
+            state.quiz.currentQIndex = 0;
+            state.quiz.score = 0;
+            
+            document.getElementById('quiz-game').style.display = 'block';
+            document.getElementById('quiz-result').style.display = 'none';
+            
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            clearInterval(state.quiz.intervalId);
+            const qData = state.quiz.questions[state.quiz.currentQIndex];
+            
+            document.getElementById('quiz-progress').innerText = `Question ${state.quiz.currentQIndex + 1}/${state.quiz.questions.length}`;
+            document.getElementById('question-text').innerText = qData.q;
+            
+            const optsDiv = document.getElementById('options-container');
+            optsDiv.innerHTML = '';
+            
+            qData.o.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.innerText = opt;
+                btn.onclick = () => checkAnswer(idx, btn);
+                optsDiv.appendChild(btn);
+            });
+
+            startTimer();
+        }
+
+        function startTimer() {
+            state.quiz.timer = 60;
+            const timerEl = document.getElementById('timer');
+            timerEl.innerText = "60s";
+            
+            state.quiz.intervalId = setInterval(() => {
+                state.quiz.timer--;
+                timerEl.innerText = state.quiz.timer + "s";
+                
+                if(state.quiz.timer <= 0) {
+                    clearInterval(state.quiz.intervalId);
+                    nextQuestion(); // Auto submit
+                }
+            }, 1000);
+        }
+
+        function checkAnswer(selectedIdx, btnElement) {
+            clearInterval(state.quiz.intervalId);
+            const currentQ = state.quiz.questions[state.quiz.currentQIndex];
+            const buttons = document.querySelectorAll('.option-btn');
+            
+            // Disable all buttons
+            buttons.forEach(b => b.disabled = true);
+
+            if(selectedIdx === currentQ.a) {
+                btnElement.classList.add('correct');
+                state.quiz.score++;
+            } else {
+                btnElement.classList.add('wrong');
+                // Show correct
+                buttons[currentQ.a].classList.add('correct');
+            }
+
+            setTimeout(nextQuestion, 1500);
+        }
+
+        function nextQuestion() {
+            state.quiz.currentQIndex++;
+            if(state.quiz.currentQIndex < state.quiz.questions.length) {
+                loadQuestion();
+            } else {
+                showResults();
+            }
+        }
+
+        function showResults() {
+            document.getElementById('quiz-game').style.display = 'none';
+            document.getElementById('quiz-result').style.display = 'block';
+            
+            const score = state.quiz.score;
+            const total = state.quiz.questions.length;
+            const percent = Math.round((score / total) * 100);
+            
+            let grade = 'F';
+            if(percent >= 90) grade = 'A+';
+            else if(percent >= 80) grade = 'A';
+            else if(percent >= 70) grade = 'B';
+            else if(percent >= 60) grade = 'C';
+            else if(percent >= 50) grade = 'D';
+            
+            document.getElementById('grade-display').innerText = grade;
+            document.getElementById('score-text').innerText = `Score: ${score}/${total}`;
+            document.getElementById('percent-text').innerText = `Percentage: ${percent}%`;
+        }
+
+        /* --- DONATION LOGIC --- */
+        function processUPI(app) {
+            const amount = document.getElementById('donate-amount').value;
+            if(!amount || amount <= 0) {
+                alert("Please enter a valid amount.");
+                return;
+            }
+
+            const upiID = "reinsangma@oksbi";
+            const name = "Rein Sangma";
+            const note = "Support GeoMorph";
+            
+            // Construct UPI Link
+            // standard format: upi://pay?pa=address&pn=name&am=amount&cu=INR&tn=note
+            const upiLink = `upi://pay?pa=${upiID}&pn=${encodeURIComponent(name)}&am=${amount}&cu=INR&tn=${encodeURIComponent(note)}`;
+            
+            // Redirect
+            window.location.href = upiLink;
+        }
+
+        /* --- AI ASSISTANT LOGIC --- */
+        // Knowledge Base (JSON structure)
+        const aiKnowledge = {
+            greetings: ["hi", "hello", "hey", "good morning", "good evening"],
+            geography: ["geomorphology", "plate tectonics", "river erosion", "volcano", "earthquake", "mountain", "assam", "erosion", "deposition", "weathering"],
+            developer: ["who made you", "who is your developer", "who created you", "about developer", "reinhard", "raha college", "nagaon"],
+            default: ["I'm not sure about that.", "Can you rephrase?", "I specialize in Geography and Geomorphology.", "That's interesting, tell me more."]
+        };
+
+        const aiResponses = {
+            greetings: "Hello! How can I help you with Geography today?",
+            geomorphology: "Geomorphology is the study of the physical features of the surface of the earth and their relation to its geological structures.",
+            "plate tectonics": "Plate tectonics is the theory that Earth's outer shell is divided into several plates that glide over the mantle.",
+            "river erosion": "River erosion involves the hydraulic action, abrasion, and attrition of river channels.",
+            "assam": "Assam is known for its tea gardens, the mighty Brahmaputra river, and the One-horned Rhinoceros of Kaziranga.",
+            "who made you": "I was developed by Reinhard Son Sangma.",
+            "reinhard": "Reinhard Son Sangma is a student at Raha College, Nagaon, Assam, and the developer of GeoMorph.",
+            "raha college": "Raha College is a renowned educational institution located in Nagaon, Assam.",
+            "nagaon": "Nagaon is a city in Assam, India, often referred to as the land of 'Satris' and 'Beels'."
+        };
+
+        function updateAILimitDisplay() {
+            const el = document.getElementById('chat-limit');
+            el.innerText = `Guest Limit: ${state.ai.usedToday}/${state.ai.dailyLimit} questions/day`;
+        }
+
+        function handleChatEnter(e) {
+            if(e.key === 'Enter') sendMessage();
+        }
+
+        function sendMessage() {
+            if(state.ai.usedToday >= state.ai.dailyLimit && !state.user.isLoggedIn) {
+                alert("Daily limit reached for guests. Please login to continue.");
+                return;
+            }
+
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if(!text) return;
+
+            // Add User Message
+            addMessage(text, 'user');
+            input.value = '';
+
+            // Limit Logic
+            state.ai.usedToday++;
+            localStorage.setItem('aiCount', state.ai.usedToday);
+            updateAILimitDisplay();
+
+            // AI Typing Simulation
+            document.getElementById('typing-indicator').style.display = 'block';
+            
+            setTimeout(() => {
+                const response = generateResponse(text);
+                document.getElementById('typing-indicator').style.display = 'none';
+                addMessage(response, 'ai');
+            }, 1500);
+        }
+
+        function addMessage(text, sender) {
+            const chatWindow = document.getElementById('chat-window');
+            const div = document.createElement('div');
+            div.className = `message msg-${sender}`;
+            div.innerText = text;
+            chatWindow.appendChild(div);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        function generateResponse(text) {
+            const lower = text.toLowerCase();
+            
+            // Check Greetings
+            if(aiKnowledge.greetings.some(k => lower.includes(k))) return aiResponses.greetings;
+            
+            // Check Developer Info
+            if(aiKnowledge.developer.some(k => lower.includes(k))) {
+                if(lower.includes("who made") || lower.includes("who created")) return aiResponses["who made you"];
+                if(lower.includes("reinhard")) return aiResponses.reinhard;
+                if(lower.includes("raha")) return aiResponses["raha college"];
+                if(lower.includes("nagaon")) return aiResponses.nagaon;
+                return aiResponses["who made you"];
+            }
+
+            // Check Geography
+            for(let key of aiKnowledge.geography) {
+                if(lower.includes(key)) {
+                    // Return specific key if exists, else generic geomorphology response
+                    return aiResponses[key] || `Regarding ${key}, it is a crucial topic in Geography.`;
+                }
+            }
+
+            return "I am still learning. Try asking about Geomorphology, Assam, or the developer Reinhard Son Sangma.";
+        }
+    </script>
+</body>
+</html>
